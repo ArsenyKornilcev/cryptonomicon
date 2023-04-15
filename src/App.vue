@@ -80,10 +80,29 @@
 			</section>
 
 			<template v-if="tickers.length">
+				<div>
+					<p>Фильтрация:</p>
+					<input
+						v-model="filter"
+						type="text"
+						class="shadow-md pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md" />
+					<button
+						v-if="page > 1"
+						@click="page--"
+						class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+						Назад
+					</button>
+					<button
+						v-if="hasNextPage"
+						@click="page++"
+						class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+						Вперед
+					</button>
+				</div>
 				<hr class="w-full border-t border-gray-600 my-4" />
 				<dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
 					<div
-						v-for="t in tickers"
+						v-for="t in filteredTickers()"
 						:key="t.name"
 						@click="select(t)"
 						class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer">
@@ -174,10 +193,25 @@ export default {
 			sel: null,
 			graph: [],
 			allTickers: [],
+			page: 1,
+			filter: "",
+			hasNextPage: false,
 		};
 	},
 
 	methods: {
+		filteredTickers() {
+			const start = (this.page - 1) * 6;
+			const end = this.page * 6;
+
+			const filteredTickers = this.tickers.filter((t) =>
+				t.name.includes(this.filter.toUpperCase())
+			);
+
+			this.hasNextPage = filteredTickers.length > end;
+
+			return filteredTickers.slice(start, end);
+		},
 		subscribeToUpdate(ticker) {
 			ticker.intervalId = setInterval(async () => {
 				let response = await fetch(
@@ -270,9 +304,9 @@ export default {
 
 			if (tickersData) {
 				this.tickers = JSON.parse(tickersData);
-				this.tickers.forEach(ticker => {
+				this.tickers.forEach((ticker) => {
 					this.subscribeToUpdate(ticker);
-				})
+				});
 			}
 		},
 	},
@@ -293,9 +327,7 @@ export default {
 
 			const trimmedTicker = this.ticker.trim().toUpperCase();
 
-			return this.tickers.some((t) =>
-				t.name === trimmedTicker
-			);
+			return this.tickers.some((t) => t.name === trimmedTicker);
 		},
 
 		isTickerExists() {
@@ -323,6 +355,11 @@ export default {
 			return [];
 		},
 	},
+	watch: {
+		filter() {
+			this.page = 1;
+		}
+	}
 };
 </script>
 
